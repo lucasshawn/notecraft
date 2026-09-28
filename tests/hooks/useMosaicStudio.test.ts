@@ -203,4 +203,46 @@ describe('useMosaicStudio Hook', () => {
     expect(newHook.current.enableDither).toBe(false);
     expect(newHook.current.ditherStrength).toBe(0.4);
   });
+
+  it('resets pixel buffer and image size during importProject when imageUrl changes or is null', () => {
+    const { result } = renderHook(() => useMosaicStudio());
+
+    // Load an image
+    act(() => {
+      const buffer = new Uint8ClampedArray(4 * 3 * 4);
+      result.current.loadPixelBuffer(buffer, 4, 3, 'blob:initial-image');
+    });
+    expect(result.current.grid.length).toBe(16); // default rows
+    expect(result.current.pixelBuffer).not.toBeNull();
+    expect(result.current.imageSize).toEqual({ width: 4, height: 3 });
+
+    // Import project with a different image URL
+    act(() => {
+      result.current.importProject({
+        imageUrl: 'blob:new-image',
+      });
+    });
+    expect(result.current.imageUrl).toBe('blob:new-image');
+    expect(result.current.pixelBuffer).toBeNull();
+    expect(result.current.imageSize).toEqual({ width: 0, height: 0 });
+    expect(result.current.grid).toEqual([]);
+
+    // Reload image
+    act(() => {
+      const buffer = new Uint8ClampedArray(4 * 3 * 4);
+      result.current.loadPixelBuffer(buffer, 4, 3, 'blob:new-image');
+    });
+    expect(result.current.pixelBuffer).not.toBeNull();
+
+    // Import project with null image URL
+    act(() => {
+      result.current.importProject({
+        imageUrl: null,
+      });
+    });
+    expect(result.current.imageUrl).toBeNull();
+    expect(result.current.pixelBuffer).toBeNull();
+    expect(result.current.imageSize).toEqual({ width: 0, height: 0 });
+    expect(result.current.grid).toEqual([]);
+  });
 });

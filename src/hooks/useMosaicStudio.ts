@@ -110,19 +110,20 @@ export function useMosaicStudio() {
   }, []);
 
   const toggleCombinedBundle = useCallback((bundleId: string) => {
-    setCombinedBundleIds((prev) => {
-      if (prev.includes(bundleId)) {
-        if (prev.length <= 1) {
-          return prev;
-        }
-        const filtered = prev.filter((id) => id !== bundleId);
-        setActiveBundleId((currActive) => (currActive === bundleId ? filtered[0] : currActive));
-        return filtered;
+    if (combinedBundleIds.includes(bundleId)) {
+      if (combinedBundleIds.length <= 1) {
+        return;
       }
+      const filtered = combinedBundleIds.filter((id) => id !== bundleId);
+      setCombinedBundleIds(filtered);
+      if (activeBundleId === bundleId) {
+        setActiveBundleId(filtered[0]);
+      }
+    } else {
+      setCombinedBundleIds([...combinedBundleIds, bundleId]);
       setActiveBundleId(bundleId);
-      return [...prev, bundleId];
-    });
-  }, []);
+    }
+  }, [combinedBundleIds, activeBundleId]);
 
   const loadPixelBuffer = useCallback((buffer: Uint8ClampedArray, width: number, height: number, url: string) => {
     setPixelBuffer(buffer);
@@ -157,8 +158,14 @@ export function useMosaicStudio() {
     }
     if (typeof data.enableDither === 'boolean') setEnableDither(data.enableDither);
     if (typeof data.ditherStrength === 'number') setDitherStrength(data.ditherStrength);
-    if (data.imageUrl !== undefined) setImageUrl(data.imageUrl);
-  }, []);
+    if (data.imageUrl !== undefined) {
+      setImageUrl(data.imageUrl);
+      if (data.imageUrl !== imageUrl || data.imageUrl === null) {
+        setPixelBuffer(null);
+        setImageSize({ width: 0, height: 0 });
+      }
+    }
+  }, [imageUrl]);
 
   return {
     dimensions,
