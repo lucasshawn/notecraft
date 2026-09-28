@@ -32,6 +32,8 @@ describe('DimensionControls Component', () => {
 
     expect(widthInput.value).toBe('72');
     expect(heightInput.value).toBe('48');
+    expect(widthInput.min).toBe('1');
+    expect(heightInput.min).toBe('1');
   });
 
   it('renders grid columns and rows sliders with values in label', () => {

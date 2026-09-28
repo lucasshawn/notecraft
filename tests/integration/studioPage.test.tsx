@@ -22,11 +22,16 @@ describe('Notecraft Studio Page Integration', () => {
       height = 100;
       crossOrigin = '';
       onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
       private _src = '';
       set src(val: string) {
         this._src = val;
         setTimeout(() => {
-          if (this.onload) this.onload();
+          if (val.includes('error') && this.onerror) {
+            this.onerror();
+          } else if (this.onload) {
+            this.onload();
+          }
         }, 10);
       }
       get src() {
@@ -210,5 +215,35 @@ describe('Notecraft Studio Page Integration', () => {
       const ditherCheckbox = screen.getByLabelText(/Floyd-Steinberg Dither/i) as HTMLInputElement;
       expect(ditherCheckbox.checked).toBe(false);
     });
+  });
+
+  it('handles image loading errors gracefully with console warning', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const savedProject = {
+      version: '1.0',
+      timestamp: '2026-09-28T00:00:00.000Z',
+      imageUrl: 'https://example.com/error-sample.png',
+    };
+    localStorage.setItem('notecraft_project', JSON.stringify(savedProject));
+
+    render(<Page />);
+
+    await waitFor(() => {
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to load sample image')
+      );
+    });
+  });
+
+  it('executes localStorage restoration strictly once on initial mount and guards against re-execution', async () => {
+    const getItemSpy = vi.spyOn(Storage.prototype, 'getItem');
+    const { rerender } = render(<Page />);
+    const callsAfterMount = getItemSpy.mock.calls.filter((c) => c[0] === 'notecraft_project').length;
+    expect(callsAfterMount).toBe(1);
+
+    // Re-render
+    rerender(<Page />);
+    const callsAfterRerender = getItemSpy.mock.calls.filter((c) => c[0] === 'notecraft_project').length;
+    expect(callsAfterRerender).toBe(1);
   });
 });

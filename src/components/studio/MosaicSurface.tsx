@@ -54,14 +54,14 @@ export function MosaicSurface({ grid, noteSizeInches = 3 }: MosaicSurfaceProps) 
                 data-testid="mosaic-cell"
                 onMouseEnter={() => setHoveredCell(cell)}
                 onMouseLeave={() => setHoveredCell(null)}
-                className={`aspect-square transition-transform hover:scale-125 hover:z-20 cursor-pointer flex items-center justify-center ${
+                className={`group aspect-square transition-transform hover:scale-125 hover:z-20 cursor-pointer flex items-center justify-center ${
                   paperRealism ? 'rounded-[2px] shadow-sm' : ''
                 }`}
                 style={{
                   backgroundColor: cell.color.hex,
                 }}
               >
-                <span className="text-[8px] font-bold text-black/60 select-none pointer-events-none opacity-0 hover:opacity-100">
+                <span className="text-[8px] font-bold text-black/60 select-none pointer-events-none opacity-0 group-hover:opacity-100">
                   {cell.color.symbol}
                 </span>
               </div>

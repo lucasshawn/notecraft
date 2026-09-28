@@ -92,6 +92,7 @@ describe('ReferenceSurface Component', () => {
     expect(callArgs[1]).toBe(100);
     expect(callArgs[2]).toBe(100);
     expect(callArgs[3]).toBe('blob:mock-image-url');
+    expect(fileInput.value).toBe('');
   });
 
   it('processes image file when dropped into dropzone', async () => {

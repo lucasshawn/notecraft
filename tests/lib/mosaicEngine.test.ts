@@ -38,6 +38,15 @@ describe('Mosaic Quantization Engine', () => {
     expect(generateMosaicGrid(buffer, 2, 2, -1, -1, miamiPalette)).toEqual([]);
   });
 
+  it('handles zero or negative image dimensions gracefully', () => {
+    const buffer = new Uint8ClampedArray(16);
+    expect(generateMosaicGrid(buffer, 0, 2, 5, 5, miamiPalette)).toEqual([]);
+    expect(generateMosaicGrid(buffer, 2, 0, 5, 5, miamiPalette)).toEqual([]);
+    expect(generateMosaicGrid(buffer, -1, 2, 5, 5, miamiPalette)).toEqual([]);
+    expect(generateMosaicGrid(buffer, 2, -1, 5, 5, miamiPalette)).toEqual([]);
+    expect(generateMosaicGrid(buffer, 0, 0, 5, 5, miamiPalette)).toEqual([]);
+  });
+
   it('applies Floyd-Steinberg error diffusion dithering', () => {
     // 2x2 image with colors that fall midway between palette colors
     const imgWidth = 2;

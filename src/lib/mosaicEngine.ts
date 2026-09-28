@@ -11,9 +11,7 @@ export function generateMosaicGrid(
   enableDither: boolean = false,
   ditherStrength: number = 0.8
 ): MosaicCell[][] {
-  if (cols <= 0 || rows <= 0) {
-    return [];
-  }
+  if (cols <= 0 || rows <= 0 || imgWidth <= 0 || imgHeight <= 0) return [];
 
   // Pre-sample image to grid resolution
   const sampledRgb: [number, number, number][][] = [];

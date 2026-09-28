@@ -133,4 +133,12 @@ describe('MosaicSurface Component', () => {
     expect(screen.getByText('(B)')).toBeDefined();
     expect(screen.getByText('Row 1, Col 2')).toBeDefined();
   });
+
+  it('renders cell with group class and symbol with group-hover:opacity-100', () => {
+    render(<MosaicSurface grid={sampleGrid} />);
+    const cells = screen.getAllByTestId('mosaic-cell');
+    expect(cells[0].className).toContain('group');
+    const symbol = cells[0].querySelector('span');
+    expect(symbol?.className).toContain('group-hover:opacity-100');
+  });
 });

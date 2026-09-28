@@ -33,6 +33,7 @@ export default function NotecraftStudio() {
 
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const importFileInputRef = useRef<HTMLInputElement>(null);
+  const isRestoredRef = useRef(false);
 
   const loadSample = useCallback((url: string) => {
     if (typeof window === 'undefined') return;
@@ -49,11 +50,17 @@ export default function NotecraftStudio() {
         loadPixelBuffer(data.data, img.width, img.height, url);
       }
     };
+    img.onerror = () => {
+      console.warn(`Failed to load sample image from: ${url}`);
+    };
     img.src = url;
   }, [loadPixelBuffer]);
 
   // Restore saved project from localStorage on initial load
   useEffect(() => {
+    if (isRestoredRef.current) return;
+    isRestoredRef.current = true;
+
     try {
       if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('notecraft_project');

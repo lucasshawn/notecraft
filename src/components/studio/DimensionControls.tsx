@@ -19,6 +19,7 @@ export function DimensionControls({ dimensions, onPhysicalChange, onGridCountCha
         <input
           id="dim-surface-width"
           type="number"
+          min="1"
           value={dimensions.surfaceWidth}
           onChange={(e) =>
             onPhysicalChange(Number(e.target.value), dimensions.surfaceHeight, dimensions.noteWidth, dimensions.noteHeight)
@@ -33,6 +34,7 @@ export function DimensionControls({ dimensions, onPhysicalChange, onGridCountCha
         <input
           id="dim-surface-height"
           type="number"
+          min="1"
           value={dimensions.surfaceHeight}
           onChange={(e) =>
             onPhysicalChange(dimensions.surfaceWidth, Number(e.target.value), dimensions.noteWidth, dimensions.noteHeight)

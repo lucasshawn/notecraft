@@ -85,7 +85,12 @@ export function ReferenceSurface({ imageUrl, onImageLoaded, onClear }: Reference
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={(e) => e.target.files?.[0] && processFile(e.target.files[0])}
+        onChange={(e) => {
+          if (e.target.files?.[0]) {
+            processFile(e.target.files[0]);
+          }
+          e.target.value = '';
+        }}
       />
     </div>
   );
