@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { generateMosaicGrid } from '@/lib/mosaicEngine';
 import { AMAZON_STICKY_BUNDLES } from '@/data/amazonBundles';
+import { StickyColor } from '@/types/mosaic';
+import { rgbToLab } from '@/lib/colorScience';
 
 describe('Mosaic Quantization Engine', () => {
   const miamiPalette = AMAZON_STICKY_BUNDLES.find((b) => b.id === 'miami')!.colors;
@@ -67,17 +69,12 @@ describe('Mosaic Quantization Engine', () => {
     expect(gridNoDither[0][0].color.id).toBe(gridNoDither[1][0].color.id);
     expect(gridNoDither[0][0].color.id).toBe(gridNoDither[1][1].color.id);
 
-    // With dithering, error diffusion spreads error so adjacent cells can pick different colors
-    const ditherColorIds = gridDithered.flatMap((row) => row.map((cell) => cell.color.id));
-    const noDitherColorIds = gridNoDither.flatMap((row) => row.map((cell) => cell.color.id));
-
     // Dither strength > 0 should diffuse error
     expect(gridDithered.length).toBe(2);
     expect(gridDithered[0].length).toBe(2);
-    // At least one cell should differ or error was diffused to neighbors
-    // Let's verify dither strength 0 matches no-dither
     const gridZeroStrength = generateMosaicGrid(buffer, imgWidth, imgHeight, 2, 2, miamiPalette, true, 0);
     const zeroStrengthColorIds = gridZeroStrength.flatMap((row) => row.map((cell) => cell.color.id));
+    const noDitherColorIds = gridNoDither.flatMap((row) => row.map((cell) => cell.color.id));
     expect(zeroStrengthColorIds).toEqual(noDitherColorIds);
   });
 
@@ -109,5 +106,77 @@ describe('Mosaic Quantization Engine', () => {
     expect(grid.length).toBe(rows);
     expect(grid[0].length).toBe(cols);
     expect(duration).toBeLessThan(25);
+  });
+});
+
+describe('Advanced Dither Algorithms (Atkinson, Bayer 4x4, None)', () => {
+  const TEST_PALETTE: StickyColor[] = [
+    { id: 'black', name: 'Black', hex: '#000000', lab: rgbToLab(0, 0, 0), symbol: 'K', packId: 'p' },
+    { id: 'white', name: 'White', hex: '#FFFFFF', lab: rgbToLab(255, 255, 255), symbol: 'W', packId: 'p' },
+  ];
+
+  const width = 4;
+  const height = 4;
+  const buffer = new Uint8ClampedArray(width * height * 4);
+  // Fill with 50% gray (128, 128, 128, 255)
+  for (let i = 0; i < buffer.length; i += 4) {
+    buffer[i] = 128;
+    buffer[i + 1] = 128;
+    buffer[i + 2] = 128;
+    buffer[i + 3] = 255;
+  }
+
+  it('supports atkinson dithering and distributes error to neighbors', () => {
+    const grid = generateMosaicGrid(
+      buffer,
+      width,
+      height,
+      width,
+      height,
+      TEST_PALETTE,
+      'ciede2000',
+      'atkinson',
+      0.8
+    );
+    expect(grid).toHaveLength(height);
+    const cellColors = grid.flat().map((c) => c.color.id);
+    expect(cellColors).toContain('black');
+    expect(cellColors).toContain('white');
+  });
+
+  it('supports bayer 4x4 ordered dithering with deterministic pattern', () => {
+    const grid = generateMosaicGrid(
+      buffer,
+      width,
+      height,
+      width,
+      height,
+      TEST_PALETTE,
+      'ciede2000',
+      'bayer',
+      0.8
+    );
+    expect(grid).toHaveLength(height);
+    const cellColors = grid.flat().map((c) => c.color.id);
+    expect(cellColors).toContain('black');
+    expect(cellColors).toContain('white');
+  });
+
+  it('produces solid flat color when ditherAlgorithm is none', () => {
+    const grid = generateMosaicGrid(
+      buffer,
+      width,
+      height,
+      width,
+      height,
+      TEST_PALETTE,
+      'ciede2000',
+      'none',
+      0.8
+    );
+    expect(grid).toHaveLength(height);
+    const firstColor = grid[0][0].color.id;
+    // With dither = none, all identical 128 gray pixels map to identical color
+    expect(grid.flat().every((c) => c.color.id === firstColor)).toBe(true);
   });
 });
