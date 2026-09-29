@@ -1,21 +1,17 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
-import { MosaicCell, MosaicDimensions, StickyColor } from '@/types/mosaic';
+import { useState, useCallback, useMemo, useRef } from 'react';
+import {
+  MosaicCell,
+  MosaicDimensions,
+  StickyColor,
+  ColorMatchAlgorithm,
+  DitherAlgorithm,
+  MosaicProjectData,
+} from '@/types/mosaic';
 import { AMAZON_STICKY_BUNDLES } from '@/data/amazonBundles';
 import { generateMosaicGrid } from '@/lib/mosaicEngine';
 import { calculateBOM, BOMReport } from '@/lib/bomCalculator';
-
-export interface MosaicProjectData {
-  version: string;
-  timestamp: string;
-  dimensions: MosaicDimensions;
-  activeBundleId: string;
-  combinedBundleIds: string[];
-  enableDither: boolean;
-  ditherStrength: number;
-  imageUrl?: string | null;
-}
 
 export function useMosaicStudio() {
   const [dimensions, setDimensions] = useState<MosaicDimensions>({
@@ -31,11 +27,34 @@ export function useMosaicStudio() {
 
   const [activeBundleId, setActiveBundleId] = useState<string>('miami');
   const [combinedBundleIds, setCombinedBundleIds] = useState<string[]>(['miami']);
-  const [enableDither, setEnableDither] = useState<boolean>(true);
+
+  // Color Matching & Dithering States
+  const [colorAlgorithm, setColorAlgorithmState] = useState<ColorMatchAlgorithm>('ciede2000');
+  const prevColorAlgorithmRef = useRef<ColorMatchAlgorithm>('cie76');
+
+  const [ditherAlgorithm, setDitherAlgorithm] = useState<DitherAlgorithm>('floyd-steinberg');
   const [ditherStrength, setDitherStrength] = useState<number>(0.75);
+
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [pixelBuffer, setPixelBuffer] = useState<Uint8ClampedArray | null>(null);
   const [imageSize, setImageSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+
+  const setColorAlgorithm = useCallback((next: ColorMatchAlgorithm) => {
+    setColorAlgorithmState((curr) => {
+      if (curr !== next) {
+        prevColorAlgorithmRef.current = curr;
+      }
+      return next;
+    });
+  }, []);
+
+  const quickCompareColorAlgorithm = useCallback(() => {
+    setColorAlgorithmState((curr) => {
+      const prev = prevColorAlgorithmRef.current;
+      prevColorAlgorithmRef.current = curr;
+      return prev;
+    });
+  }, []);
 
   // Compute active colors from selected bundles
   const activePalette = useMemo<StickyColor[]>(() => {
@@ -53,7 +72,7 @@ export function useMosaicStudio() {
     return palette.length > 0 ? palette : AMAZON_STICKY_BUNDLES[0].colors;
   }, [combinedBundleIds]);
 
-  // Compute mosaic grid
+  // Compute mosaic grid reactively
   const grid = useMemo<MosaicCell[][]>(() => {
     if (!pixelBuffer || imageSize.width === 0 || imageSize.height === 0) {
       return [];
@@ -65,10 +84,20 @@ export function useMosaicStudio() {
       dimensions.cols,
       dimensions.rows,
       activePalette,
-      enableDither,
+      colorAlgorithm,
+      ditherAlgorithm,
       ditherStrength
     );
-  }, [pixelBuffer, imageSize, dimensions.cols, dimensions.rows, activePalette, enableDither, ditherStrength]);
+  }, [
+    pixelBuffer,
+    imageSize,
+    dimensions.cols,
+    dimensions.rows,
+    activePalette,
+    colorAlgorithm,
+    ditherAlgorithm,
+    ditherStrength,
+  ]);
 
   // Compute Bill of Materials
   const bom = useMemo<BOMReport>(() => {
@@ -144,11 +173,13 @@ export function useMosaicStudio() {
       dimensions,
       activeBundleId,
       combinedBundleIds,
-      enableDither,
+      colorAlgorithm,
+      ditherAlgorithm,
+      enableDither: ditherAlgorithm !== 'none',
       ditherStrength,
       imageUrl,
     };
-  }, [dimensions, activeBundleId, combinedBundleIds, enableDither, ditherStrength, imageUrl]);
+  }, [dimensions, activeBundleId, combinedBundleIds, colorAlgorithm, ditherAlgorithm, ditherStrength, imageUrl]);
 
   const importProject = useCallback((data: Partial<MosaicProjectData>) => {
     if (data.dimensions) setDimensions(data.dimensions);
@@ -156,8 +187,17 @@ export function useMosaicStudio() {
     if (data.combinedBundleIds && data.combinedBundleIds.length > 0) {
       setCombinedBundleIds(data.combinedBundleIds);
     }
-    if (typeof data.enableDither === 'boolean') setEnableDither(data.enableDither);
-    if (typeof data.ditherStrength === 'number') setDitherStrength(data.ditherStrength);
+    if (data.colorAlgorithm) {
+      setColorAlgorithmState(data.colorAlgorithm);
+    }
+    if (data.ditherAlgorithm) {
+      setDitherAlgorithm(data.ditherAlgorithm);
+    } else if (typeof data.enableDither === 'boolean') {
+      setDitherAlgorithm(data.enableDither ? 'floyd-steinberg' : 'none');
+    }
+    if (typeof data.ditherStrength === 'number') {
+      setDitherStrength(data.ditherStrength);
+    }
     if (data.imageUrl !== undefined) {
       setImageUrl(data.imageUrl);
       if (data.imageUrl !== imageUrl || data.imageUrl === null) {
@@ -178,8 +218,13 @@ export function useMosaicStudio() {
     setCombinedBundleIds,
     selectSingleBundle,
     toggleCombinedBundle,
-    enableDither,
-    setEnableDither,
+    colorAlgorithm,
+    setColorAlgorithm,
+    quickCompareColorAlgorithm,
+    ditherAlgorithm,
+    setDitherAlgorithm,
+    enableDither: ditherAlgorithm !== 'none',
+    setEnableDither: (val: boolean) => setDitherAlgorithm(val ? 'floyd-steinberg' : 'none'),
     ditherStrength,
     setDitherStrength,
     imageUrl,

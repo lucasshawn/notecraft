@@ -19,6 +19,8 @@ describe('useMosaicStudio Hook', () => {
     expect(result.current.combinedBundleIds).toEqual(['miami']);
     expect(result.current.activePalette.length).toBe(5);
 
+    expect(result.current.colorAlgorithm).toBe('ciede2000');
+    expect(result.current.ditherAlgorithm).toBe('floyd-steinberg');
     expect(result.current.enableDither).toBe(true);
     expect(result.current.ditherStrength).toBe(0.75);
     expect(result.current.imageUrl).toBeNull();
@@ -117,7 +119,44 @@ describe('useMosaicStudio Hook', () => {
       result.current.setDitherStrength(0.5);
     });
     expect(result.current.enableDither).toBe(false);
+    expect(result.current.ditherAlgorithm).toBe('none');
     expect(result.current.ditherStrength).toBe(0.5);
+  });
+
+  it('updates colorAlgorithm and ditherAlgorithm reactively', () => {
+    const { result } = renderHook(() => useMosaicStudio());
+    act(() => {
+      result.current.setColorAlgorithm('oklab');
+      result.current.setDitherAlgorithm('atkinson');
+    });
+    expect(result.current.colorAlgorithm).toBe('oklab');
+    expect(result.current.ditherAlgorithm).toBe('atkinson');
+  });
+
+  it('provides quickCompareColorAlgorithm to flip between last two selected algorithms', () => {
+    const { result } = renderHook(() => useMosaicStudio());
+    act(() => {
+      result.current.setColorAlgorithm('oklab');
+    });
+    expect(result.current.colorAlgorithm).toBe('oklab');
+    act(() => {
+      result.current.quickCompareColorAlgorithm();
+    });
+    expect(result.current.colorAlgorithm).toBe('ciede2000');
+    act(() => {
+      result.current.quickCompareColorAlgorithm();
+    });
+    expect(result.current.colorAlgorithm).toBe('oklab');
+  });
+
+  it('imports legacy project data with enableDither: false as ditherAlgorithm: none', () => {
+    const { result } = renderHook(() => useMosaicStudio());
+    act(() => {
+      result.current.importProject({
+        enableDither: false,
+      });
+    });
+    expect(result.current.ditherAlgorithm).toBe('none');
   });
 
   it('generates mosaic grid and calculates BOM when pixel buffer is loaded', () => {
@@ -177,7 +216,8 @@ describe('useMosaicStudio Hook', () => {
     act(() => {
       result.current.setPhysicalDimensions(90, 60, 3, 3);
       result.current.selectSingleBundle('energy');
-      result.current.setEnableDither(false);
+      result.current.setColorAlgorithm('oklab');
+      result.current.setDitherAlgorithm('bayer');
       result.current.setDitherStrength(0.4);
     });
 
@@ -187,7 +227,9 @@ describe('useMosaicStudio Hook', () => {
     expect(exported.dimensions.rows).toBe(20);
     expect(exported.activeBundleId).toBe('energy');
     expect(exported.combinedBundleIds).toEqual(['energy']);
-    expect(exported.enableDither).toBe(false);
+    expect(exported.colorAlgorithm).toBe('oklab');
+    expect(exported.ditherAlgorithm).toBe('bayer');
+    expect(exported.enableDither).toBe(true);
     expect(exported.ditherStrength).toBe(0.4);
 
     // Import into a new hook instance
@@ -200,7 +242,8 @@ describe('useMosaicStudio Hook', () => {
     expect(newHook.current.dimensions.rows).toBe(20);
     expect(newHook.current.activeBundleId).toBe('energy');
     expect(newHook.current.combinedBundleIds).toEqual(['energy']);
-    expect(newHook.current.enableDither).toBe(false);
+    expect(newHook.current.colorAlgorithm).toBe('oklab');
+    expect(newHook.current.ditherAlgorithm).toBe('bayer');
     expect(newHook.current.ditherStrength).toBe(0.4);
   });
 
