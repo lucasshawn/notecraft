@@ -7,6 +7,7 @@ import { ReferenceSurface } from '@/components/studio/ReferenceSurface';
 import { MosaicSurface } from '@/components/studio/MosaicSurface';
 import { DimensionControls } from '@/components/studio/DimensionControls';
 import { PaletteRibbon } from '@/components/studio/PaletteRibbon';
+import { RenderingControls } from '@/components/studio/RenderingControls';
 import { BuyNowBar } from '@/components/studio/BuyNowBar';
 import { FloorAssemblyModal } from '@/components/print/FloorAssemblyModal';
 import { SAMPLE_IMAGES } from '@/data/sampleImages';
@@ -20,9 +21,13 @@ export default function NotecraftStudio() {
     combinedBundleIds,
     selectSingleBundle,
     toggleCombinedBundle,
-    enableDither,
-    setEnableDither,
+    colorAlgorithm,
+    setColorAlgorithm,
+    quickCompareColorAlgorithm,
+    ditherAlgorithm,
+    setDitherAlgorithm,
     ditherStrength,
+    setDitherStrength,
     imageUrl,
     loadPixelBuffer,
     clearImage,
@@ -84,7 +89,9 @@ export default function NotecraftStudio() {
       dimensions,
       activeBundleId,
       combinedBundleIds,
-      enableDither,
+      colorAlgorithm,
+      ditherAlgorithm,
+      enableDither: ditherAlgorithm !== 'none',
       ditherStrength,
       imageUrl,
       bom,
@@ -229,16 +236,16 @@ export default function NotecraftStudio() {
           <div className="space-y-3">
             <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
               <span>Surface 2: 8-Bit Sticky Note Mosaic</span>
-              <label className="flex items-center gap-1 text-[10px] text-slate-400 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={enableDither}
-                  onChange={(e) => setEnableDither(e.target.checked)}
-                  className="rounded text-blue-500 cursor-pointer"
-                />
-                <span>Floyd-Steinberg Dither</span>
-              </label>
             </div>
+            <RenderingControls
+              colorAlgorithm={colorAlgorithm}
+              onSelectColorAlgorithm={setColorAlgorithm}
+              onQuickCompare={quickCompareColorAlgorithm}
+              ditherAlgorithm={ditherAlgorithm}
+              onSelectDitherAlgorithm={setDitherAlgorithm}
+              ditherStrength={ditherStrength}
+              onDitherStrengthChange={setDitherStrength}
+            />
             <MosaicSurface grid={grid} noteSizeInches={dimensions.noteWidth} />
           </div>
         </div>

@@ -81,13 +81,54 @@ describe('Notecraft Studio Page Integration', () => {
     expect(screen.getByText(/Grid Notes Wide/i)).toBeDefined();
   });
 
-  it('toggles Floyd-Steinberg dither option', () => {
+  it('allows user to switch between color algorithms and dithering styles in real time', () => {
     render(<Page />);
-    const ditherCheckbox = screen.getByLabelText(/Floyd-Steinberg Dither/i) as HTMLInputElement;
-    expect(ditherCheckbox).toBeDefined();
-    expect(ditherCheckbox.checked).toBe(true);
-    fireEvent.click(ditherCheckbox);
-    expect(ditherCheckbox.checked).toBe(false);
+
+    // Color distance pills
+    const ciedeBtn = screen.getByRole('button', { name: /CIEDE2000/i });
+    const oklabBtn = screen.getByRole('button', { name: /Oklab/i });
+    const cie76Btn = screen.getByRole('button', { name: /CIE76/i });
+    const flipBtn = screen.getByTitle(/quick compare/i);
+
+    expect(ciedeBtn).toBeDefined();
+    expect(oklabBtn).toBeDefined();
+    expect(cie76Btn).toBeDefined();
+
+    // Default active is CIEDE2000
+    expect(ciedeBtn.className).toContain('bg-blue-600');
+
+    // Click Oklab
+    fireEvent.click(oklabBtn);
+    expect(oklabBtn.className).toContain('bg-blue-600');
+    expect(ciedeBtn.className).not.toContain('bg-blue-600');
+
+    // Click Flip button to return to CIEDE2000
+    fireEvent.click(flipBtn);
+    expect(ciedeBtn.className).toContain('bg-blue-600');
+
+    // Dither style pills
+    const offBtn = screen.getByRole('button', { name: /^Off$/i });
+    const atkinsonBtn = screen.getByRole('button', { name: /Atkinson/i });
+    const bayerBtn = screen.getByRole('button', { name: /Bayer 4×4/i });
+
+    expect(offBtn).toBeDefined();
+    expect(atkinsonBtn).toBeDefined();
+    expect(bayerBtn).toBeDefined();
+
+    // Click Atkinson
+    fireEvent.click(atkinsonBtn);
+    expect(atkinsonBtn.className).toContain('bg-indigo-600');
+
+    // Strength slider should be visible
+    const slider = screen.getByLabelText(/Dither Strength/i) as HTMLInputElement;
+    expect(slider).toBeDefined();
+    fireEvent.change(slider, { target: { value: '0.5' } });
+    expect(slider.value).toBe('0.5');
+
+    // Click Off
+    fireEvent.click(offBtn);
+    expect(offBtn.className).toContain('bg-indigo-600');
+    expect(screen.queryByLabelText(/Dither Strength/i)).toBeNull();
   });
 
   it('provides an Open / Import Project button and file input', () => {
@@ -151,6 +192,8 @@ describe('Notecraft Studio Page Integration', () => {
     const parsed = JSON.parse(stored!);
     expect(parsed.version).toBe('1.0');
     expect(parsed.dimensions).toBeDefined();
+    expect(parsed.colorAlgorithm).toBeDefined();
+    expect(parsed.ditherAlgorithm).toBeDefined();
   });
 
   it('imports project JSON from file and updates state', async () => {
@@ -173,7 +216,8 @@ describe('Notecraft Studio Page Integration', () => {
       },
       activeBundleId: 'marseille',
       combinedBundleIds: ['marseille'],
-      enableDither: false,
+      colorAlgorithm: 'oklab',
+      ditherAlgorithm: 'atkinson',
       ditherStrength: 0.5,
     };
 
@@ -204,7 +248,8 @@ describe('Notecraft Studio Page Integration', () => {
       },
       activeBundleId: 'bali',
       combinedBundleIds: ['bali'],
-      enableDither: false,
+      colorAlgorithm: 'cie76',
+      ditherAlgorithm: 'none',
       ditherStrength: 0.5,
     };
     localStorage.setItem('notecraft_project', JSON.stringify(savedProject));
@@ -212,8 +257,8 @@ describe('Notecraft Studio Page Integration', () => {
     render(<Page />);
 
     await waitFor(() => {
-      const ditherCheckbox = screen.getByLabelText(/Floyd-Steinberg Dither/i) as HTMLInputElement;
-      expect(ditherCheckbox.checked).toBe(false);
+      const offBtn = screen.getByRole('button', { name: /^Off$/i });
+      expect(offBtn.className).toContain('bg-indigo-600');
     });
   });
 
